@@ -111,9 +111,6 @@ func Login() gin.handlerfunc {
 	}
 
 }
-func ProductViewerAdmins() gin.handlerfunc {
-
-}
 
 func searchProduct() gin.handlerfunc {
 
