@@ -9,12 +9,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/zainabmohammed9949/eco-go/database"
 	"github.com/zainabmohammed9949/eco-go/models"
-
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-
-	//""
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -157,7 +155,7 @@ func searchProduct() gin.HandlerFunc {
 			return
 		}
 
-		defer cursor.Close()
+		defer cursor.Close(ctx)
 
 		if err := cursor.Err(); err != nil {
 			log.Println(err)
