@@ -22,7 +22,7 @@ func DBSet() *mongo.Client {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = Client.ping(context.TODO(), nil)
+	err = Client.Ping(context.TODO(), nil)
 	if err != nil {
 		log.Println("failed to connect to mongodb:( ")
 		return nil
