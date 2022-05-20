@@ -10,7 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/zainabmohammed9949/eco-go/database"
+	helper "github.com/zainabmohammed9949/eco-go/helpers"
 	"github.com/zainabmohammed9949/eco-go/models"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -85,7 +87,7 @@ func Signup() gin.HandlerFunc {
 		user.ID = primitive.NewObjectID()
 		user.User_ID = user.ID.Hex()
 
-		token, refreshtoken := generate.TokenGenerator(*user.Email, user.First_Name, user.Last_Name, user.User_ID)
+		token, refreshtoken, _ := helper.GenerateAllTokens(*user.Email, *user.First_Name, *user.Last_Name, *&user.User_ID)
 		user.Token = &token
 		user.Refresh_Token = &refreshtoken
 		user.UserCart = make([]models.ProductUser, 0)
@@ -110,7 +112,7 @@ func Login() gin.HandlerFunc {
 		var user models.User
 		var founduser models.User
 		if err := c.BindJSON(&user); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err})
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		err := UserCollection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&founduser)
@@ -127,15 +129,15 @@ func Login() gin.HandlerFunc {
 			return
 		}
 
-		token, refreshToken, _ := generate.TokenGenerator(*founduser.Email, *founduser.First_Name, *founduser.Last_Name, founduser.User_ID)
+		token, refreshToken, _ := helper.GenerateAllTokens(*founduser.Email, *founduser.First_Name, *founduser.Last_Name, founduser.User_ID)
 		defer cancel()
-		generate.UpdatedAllTokens(token, refreshToken, founduser.User_ID)
-		c.JSON(http.StatusFound, user)
+		helper.UpdateAllTokens(token, refreshToken, founduser.User_ID)
+		c.JSON(http.StatusFound, founduser)
 	}
 
 }
 
-func searchProduct() gin.HandlerFunc {
+func SearchProduct() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		var productlist []models.Product
@@ -167,13 +169,14 @@ func searchProduct() gin.HandlerFunc {
 	}
 
 }
-func ProductViewerAdmins() gin.HandlerFunc {
 
-}
+//func ProductViewerAdmins() gin.HandlerFunc {
 
-func searchProductByQuery() gin.HandlerFunc {
+//}
+
+func SearchProductByQuery() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var searchproduct []models.Product
+		var searchproducts []models.Product
 		queryParam := c.Query("name")
 		//you want to check if empty
 		if queryParam == "" {
@@ -193,7 +196,7 @@ func searchProductByQuery() gin.HandlerFunc {
 			return
 		}
 
-		searchquerydb.All(ctx, &searchproduct)
+		searchquerydb.All(ctx, &searchproducts)
 		if err != nil {
 			log.Println(err)
 			c.IndentedJSON(400, "Invalid")
@@ -208,6 +211,6 @@ func searchProductByQuery() gin.HandlerFunc {
 		}
 
 		defer cancel()
-		c.IndentedJSON(200, searchproduct)
+		c.IndentedJSON(200, searchproducts)
 	}
 }
