@@ -123,13 +123,15 @@ func GetItemFromCart() gin.HandlerFunc {
 		unwind := bson.D{{Key: "$unwind", Value: bson.D{primitive.E{Key: "path", Value: "$usercart"}}}}
 		grouping := bson.D{{Key: "$group", Value: bson.D{primitive.E{Key: "_id", Value: "$_id"}, {Key: "total", Value: bson.D{primitive.E{Key: "$sum", Value: "$usercart.price"}}}}}}
 
-		pointcursor, err := UserCollection.Aggregate(ctx, mongo.Pipeline{filter_match, unwind, grouping})
-		if err != nil {
-			log.Println(err)
+		pointcursor, _ := UserCollection.Aggregate(ctx, mongo.Pipeline{filter_match, unwind, grouping})
 
-		}
+		//if err != nil {
+		//	log.Println(err)
+
+		//}
 		var listing []bson.M
-		if err = pointcursor.All(ctx, &listing); err != nil {
+		errr := pointcursor.All(ctx, &listing)
+		if errr != nil {
 			log.Println(err)
 			c.AbortWithStatus(http.StatusInternalServerError)
 

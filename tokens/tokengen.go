@@ -1,4 +1,4 @@
-package helper
+package tokens
 
 import (
 	"context"
@@ -62,11 +62,9 @@ func GenerateAllTokens(email string, firstName string, lastName string, uid stri
 func ValidateToken(signedToken string) (claims *SignedDetails, msg string) {
 	token, err := jwt.ParseWithClaims(
 		signedToken,
-		&SignedDetails{},
-		func(token *jwt.Token) (interface{}, error) {
+		&SignedDetails{}, func(token *jwt.Token) (interface{}, error) {
 			return []byte(SECRET_KEY), nil
-		},
-	)
+		})
 
 	if err != nil {
 		msg = err.Error()
@@ -90,7 +88,6 @@ func ValidateToken(signedToken string) (claims *SignedDetails, msg string) {
 }
 
 //UpdateAllTokens renews the user tokens when they login
-
 func UpdateAllTokens(signedToken string, signedRefreshToken string, userId string) {
 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
@@ -108,9 +105,7 @@ func UpdateAllTokens(signedToken string, signedRefreshToken string, userId strin
 		Upsert: &upsert,
 	}
 
-	_, err := userCollection.UpdateOne(
-		ctx,
-		filter,
+	_, err := userCollection.UpdateOne(ctx, filter,
 		bson.D{
 			{Key: "$set", Value: updateObj},
 		},
