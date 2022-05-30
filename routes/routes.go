@@ -1,14 +1,14 @@
 package routes
 
 import (
-	"github.com/gin-gonic/gin"
-	controllers "github.com/zainabmohammed9949/eco-go/controllers"
+	"github.com/gorilla/mux"
+	"github.com/zainabmoh9949/eco-go/controllers"
 )
 
-func UserRoutes(incomingRoutes *gin.Engine) {
-	incomingRoutes.POST("/users/signup", controllers.Signup())
-	incomingRoutes.POST("/users/login", controllers.Login())
-	//incomingRoutes.POST("/admin/addproduct", controllers.ProductViewerAdmins())
-	incomingRoutes.GET("/users/productview", controllers.SearchProduct())
-	incomingRoutes.GET("/users/search", controllers.SearchProductByQuery())
+var UserRoutes = func(router *mux.Router) {
+	router.HandleFunc("/users/signup", controllers.Signup()).Methods("POST")
+	router.HandleFunc("/users/login", controllers.Login()).Methods("POST")
+	router.HandleFunc("/users/productview", controllers.SearchProduct()).Methods("GET")
+	router.HandleFunc("/users/search", controllers.SearchProductByQuery()).Methods("GET")
+	router.HandleFunc("/admin/addproduct", controllers.ProduclViewerAdmins()).Methods("Post")
 }

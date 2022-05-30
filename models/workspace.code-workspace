@@ -1,0 +1,40 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "..\\templates"
+		}
+	],
+	"settings": {
+		"sqltools.connections": [
+			{
+				"mysqlOptions": {
+					"authProtocol": "default"
+				},
+				"previewLimit": 50,
+				"server": "localhost",
+				"port": 8080,
+				"driver": "MySQL",
+				"name": "myfirstdbconnection",
+				"database": "myshop",
+				"username": "zainabmoh",
+				"password": "0000"
+			},
+			{
+				"mysqlOptions": {
+					"authProtocol": "xprotocol"
+				},
+				"previewLimit": 50,
+				"server": "localhost",
+				"port": 3306,
+				"driver": "MySQL",
+				"name": "ccc",
+				"database": "mysqldb",
+				"username": "zainab",
+				"password": "0000"
+			}
+		]
+	}
+}

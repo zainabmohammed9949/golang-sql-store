@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	helper "github.com/zainabmohammed9949/eco-go/helpers"
+	generate "github.com/zainabmohammed9949/eco-go/tokens"
 )
 
 func Authentication() gin.HandlerFunc {
@@ -17,7 +17,7 @@ func Authentication() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		claims, err := helper.ValidateToken(userToken)
+		claims, err := generate.ValidateToken(userToken)
 		if err != "" {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 			c.Abort()

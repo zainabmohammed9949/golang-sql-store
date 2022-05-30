@@ -8,27 +8,15 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/zainabmohammed9949/eco-go/database"
-	"github.com/zainabmohammed9949/eco-go/models"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
+	"github.com/zainabmohammed9949/golang-mysql-store/database"
+	"github.com/zainabmohammed9949/golang-mysql-store/models"
 )
 
-type Application struct {
-	prodCollection *mongo.Collection
-	UserCollection *mongo.Collection
-}
 
-func NewApplication(prodCollection, userCollection *mongo.Collection) *Application {
-	return &Application{
-		prodCollection: prodCollection,
-		UserCollection: userCollection,
-	}
-}
 
-func (app *Application) AddToCart() gin.HandlerFunc {
+func AddToCart(){
 	return func(c *gin.Context) {
+		{
 		productQueryID := c.Query("id")
 		if productQueryID == "" {
 			log.Println("product id is empty")

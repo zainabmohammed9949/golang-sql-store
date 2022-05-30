@@ -1,27 +1,18 @@
 package controllers
 
 import (
-	"context"
-	"fmt"
+	"database/sql"
 	"log"
 	"net/http"
-	"time"
 
-	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
-	"github.com/zainabmohammed9949/eco-go/database"
-	helper "github.com/zainabmohammed9949/eco-go/helpers"
-	"github.com/zainabmohammed9949/eco-go/models"
+	"github.com/zainabmohammed9949/golang-mysql-store/models"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
+	//"github.com/jinzhu/gorm"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
-var UserCollection *mongo.Collection = database.UserData(database.Client, "Users")
-var ProductCollection *mongo.Collection = database.ProductData(database.Client, "Products")
-var Validate = validator.New()
+var DB *sql.DB
 
 func HashPassword(password string) string {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
@@ -41,131 +32,40 @@ func VerfyPassward(userPassword string, givenPassword string) (bool, string) {
 	}
 	return valid, msg
 }
-
-func Signup() gin.HandlerFunc {
-
-	return func(c *gin.Context) {
-
-		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
-		defer cancel()
-
-		var user models.User
-		if err := c.BindJSON(&user); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		validationErr := Validate.Struct(user)
-		if validationErr != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": validationErr})
-			return
-		}
-		count, err := UserCollection.CountDocuments(ctx, bson.M{"email": user.Email})
-		if err != nil {
-			log.Panic(err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-			return
-		}
-		if count > 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "user already exists"})
-		}
-		count, err = UserCollection.CountDocuments(ctx, bson.M{"phone": user.Phone})
-		defer cancel()
-		if err != nil {
-			log.Panic(err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-			return
-		}
-		if count > 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "this phone is already in use"})
-			return
-		}
-
-		password := HashPassword(*user.Password)
-		user.Password = &password
-		user.Created_At, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
-		user.Updated_At, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
-		user.ID = primitive.NewObjectID()
-		user.User_ID = user.ID.Hex()
-
-		token, refreshtoken, _ := helper.GenerateAllTokens(*user.Email, *user.First_Name, *user.Last_Name, *&user.User_ID)
-		user.Token = &token
-		user.Refresh_Token = &refreshtoken
-		user.UserCart = make([]models.ProductUser, 0)
-		user.Address_Details = make([]models.Address, 0)
-		user.Order_Status = make([]models.Order, 0)
-		_, inserterr := UserCollection.InsertOne(ctx, user)
-		if inserterr != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "the user did not get created"})
-			return
-		}
-		defer cancel()
-
-		c.JSON(http.StatusCreated, "Successfully signed in!")
+func signup(res http.ResponseWriter, req *http.Request) {
+	if req.Method != "POST" {
+		http.ServeFile(res, req, "./templates/signup.html")
+		return
 	}
-}
+	email := req.FormValue("email")
+	password := req.FormValue("password")
 
-func Login() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
-		defer cancel()
-
-		var user models.User
-		var founduser models.User
-		if err := c.BindJSON(&user); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		err := UserCollection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&founduser)
-		defer cancel()
-
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "The Email or Password is not correct"})
-			return
-		}
-		PasswordIsValid, msg := VerfyPassward(*user.Password, *founduser.Password)
-		if !PasswordIsValid {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-			fmt.Println(msg)
-			return
-		}
-
-		token, refreshToken, _ := helper.GenerateAllTokens(*founduser.Email, *founduser.First_Name, *founduser.Last_Name, founduser.User_ID)
-		defer cancel()
-		helper.UpdateAllTokens(token, refreshToken, founduser.User_ID)
-		c.JSON(http.StatusFound, founduser)
+	slct, err := DB.Prepare("SELECT email FROM users WHERE email = ? ")
+	if err != nil {
+		http.Error(res, "server error, unable to create your account.", 500)
+		return
 	}
-
-}
-
-func SearchProduct() gin.HandlerFunc {
-	return func(c *gin.Context) {
-
-		var productlist []models.Product
-		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
-		defer cancel()
-
-		cursor, err := ProductCollection.Find(ctx, bson.D{{}})
-		if err != nil {
-			c.IndentedJSON(http.StatusInternalServerError, "Something went wrong, please try again later")
-			return
-		}
-		err = cursor.All(ctx, &productlist)
+	_, err = slct.Exec(email)
+	switch {
+	case err == sql.ErrNoRows:
+		HashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 
 		if err != nil {
-			log.Println(err)
-			c.AbortWithStatus(http.StatusInternalServerError)
+			http.Error(res, "server error, unable to create your account.", 500)
 			return
 		}
-
-		defer cursor.Close(ctx)
-
-		if err := cursor.Err(); err != nil {
-			log.Println(err)
-			c.IndentedJSON(400, "Invalid")
+		_, err = DB.Exec("INSERT INTO users (email,password) VALUES (?,?)", email, HashedPassword)
+		if err != nil {
+			http.Error(res, "server error, unable to create your account.", 500)
 			return
 		}
-		defer cancel()
-		c.IndentedJSON(200, productlist)
+		res.Write([]byte("user created!"))
+		return
+	case err != nil:
+		http.Error(res, "server error, unable to create your account.", 500)
+		return
+	default:
+		http.Redirect(res, req, "/", 301)
 	}
 
 }
@@ -173,44 +73,55 @@ func SearchProduct() gin.HandlerFunc {
 //func ProductViewerAdmins() gin.HandlerFunc {
 
 //}
+//
+//}
+func searchProduct(DB *sql.DB, res http.ResponseWriter, r *http.Request, p models.Product) ([]models.Product, error) {
+	if r.Method != "POST" {
+		http.ServeFile(res, r, "home.html")
 
-func SearchProductByQuery() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var searchproducts []models.Product
-		queryParam := c.Query("name")
-		//you want to check if empty
-		if queryParam == "" {
-			log.Println("query is empty")
-			c.Header("content-Type", "application/json")
-			c.JSON(http.StatusNotFound, gin.H{"error": "invalid search index"})
-			c.Abort()
-			return
-		}
-		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
-		defer cancel()
-
-		searchquerydb, err := ProductCollection.Find(ctx, bson.M{"product_name": bson.M{"regex": queryParam}})
-
-		if err != nil {
-			c.IndentedJSON(404, "Somthing went wrong while fetching data")
-			return
-		}
-
-		searchquerydb.All(ctx, &searchproducts)
-		if err != nil {
-			log.Println(err)
-			c.IndentedJSON(400, "Invalid")
-			return
-		}
-
-		defer searchquerydb.Close(ctx)
-		if err := searchquerydb.Err(); err != nil {
-			log.Println(err)
-			c.IndentedJSON(400, "invalid request")
-			return
-		}
-
-		defer cancel()
-		c.IndentedJSON(200, searchproducts)
 	}
+	product := []models.Product{}
+	rowstext := DB.QueryRow("SELECT * FROM products WHERE prod_name =?", *p.Product_Name)
+	for rowstext.Next() {
+		var id uint
+		var product_name *string
+		var price *uint64
+		var rating *uint8
+		var image *string
+		err2 := rowstext.Scan(&id, &product_name, &price, &image)
+		if err2 != nil {
+			return nil, err2
+		}
+		product := models.Product{id, product_name, price, rating, image}
+		products := append(products, product)
+	}
+	return products, nil
+
+}
+
+func login(res http.ResponseWriter, req *http.Request) {
+	if req.Method != "POST" {
+		http.ServeFile(res, req, "login.html")
+		return
+	}
+	email := req.FormValue("email")
+	password := req.FormValue("password")
+
+	var dbemail, psw string
+	err := DB.QueryRow("SELECT email,password FROM users WHERE email =?", email).Scan(&dbemail, &psw)
+
+	if err != nil {
+		http.Redirect(res, req, "/login", 301)
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(psw), []byte(password))
+
+	if err != nil {
+		http.Redirect(res, req, "/login", 301)
+		return
+	}
+
+	res.Write([]byte("Hello" + email))
+
 }
