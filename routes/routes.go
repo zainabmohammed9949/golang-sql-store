@@ -2,7 +2,7 @@ package routes
 
 import (
 	"github.com/gorilla/mux"
-	"github.com/zainabmoh9949/eco-go/controllers"
+	"github.com/zainabmohammed9949/golang-sql-store/controllers"
 )
 
 var UserRoutes = func(router *mux.Router) {
