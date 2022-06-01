@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	generate "github.com/zainabmohammed9949/eco-go/tokens"
+	generate "github.com/zainabmohammed9949/golang-sql-store/tokens"
 )
 
 func Authentication() gin.HandlerFunc {
