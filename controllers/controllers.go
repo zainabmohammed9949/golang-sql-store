@@ -1,18 +1,18 @@
 package controllers
 
 import (
-	"database/sql"
+	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
-	"github.com/zainabmohammed9949/golang-mysql-store/models"
+	"github.com/jinzhu/gorm"
+	"github.com/zainabmohammed9949/golang-sql-store/models"
 
-	//"github.com/jinzhu/gorm"
+	"context"
 
 	"golang.org/x/crypto/bcrypt"
 )
-
-var DB *sql.DB
 
 func HashPassword(password string) string {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
@@ -32,96 +32,97 @@ func VerfyPassward(userPassword string, givenPassword string) (bool, string) {
 	}
 	return valid, msg
 }
-func signup(res http.ResponseWriter, req *http.Request) {
+func signup(DD *gorm.DB, res http.ResponseWriter, req *http.Request) error {
 	if req.Method != "POST" {
-		http.ServeFile(res, req, "./templates/signup.html")
-		return
+		http.ServeFile(res, req, "/signup.html")
+		return nil
 	}
 	email := req.FormValue("email")
 	password := req.FormValue("password")
+	user_Name := req.FormValue("u_name")
+	phone := req.FormValue("phone")
 
-	slct, err := DB.Prepare("SELECT email FROM users WHERE email = ? ")
-	if err != nil {
-		http.Error(res, "server error, unable to create your account.", 500)
-		return
-	}
-	_, err = slct.Exec(email)
-	switch {
-	case err == sql.ErrNoRows:
-		HashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	user := models.User{User_Name: &user_Name, Password: &password, Phone: &phone, Email: &email}
+	results := DD.Create(&user)
+	err := results.Error
+	return err
+}
+func searchProduct(DB *gorm.DB, res http.ResponseWriter, r *http.Request, p models.Product) (*gorm.DB, error) {
+	if r.Method != "POST" {
+		http.ServeFile(res, r, "homepage.html")
 
-		if err != nil {
-			http.Error(res, "server error, unable to create your account.", 500)
-			return
-		}
-		_, err = DB.Exec("INSERT INTO users (email,password) VALUES (?,?)", email, HashedPassword)
-		if err != nil {
-			http.Error(res, "server error, unable to create your account.", 500)
-			return
-		}
-		res.Write([]byte("user created!"))
-		return
-	case err != nil:
-		http.Error(res, "server error, unable to create your account.", 500)
-		return
-	default:
-		http.Redirect(res, req, "/", 301)
 	}
+	name := r.FormValue("product_name")
+	prod := DB.First(&p, "product_name=?", name)
+	if prod == nil {
+		panic("there are no product in this name")
+		http.Redirect(res, r, "/homepage", 302)
+	}
+
+	return prod, nil
 
 }
-
-//func ProductViewerAdmins() gin.HandlerFunc {
-
-//}
-//
-//}
-func searchProduct(DB *sql.DB, res http.ResponseWriter, r *http.Request, p models.Product) ([]models.Product, error) {
+func insertProduct(ctx context.Context, DD *gorm.DB, res http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.ServeFile(res, r, "home.html")
+		http.ServeFile(res, r, "seller_profile.html")
+
+	}
+	txt1 := r.FormValue("product_name")
+	txt2 := r.FormValue("Price")
+	txt3 := r.FormValue("Image")
+	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelfunc()
+	product := models.Product{Product_Name: &txt1, Price: &txt2, Image: &txt3}
+	DD.NewRecord(product)
+	results := DD.Create(&product)
+
+	err := results.Error
+
+	if err != nil {
+		log.Printf("Error %s when inserting row into products table", err)
+	}
+	log.Printf("%d products created ", "{}", results)
+	json.NewEncoder(res).Encode(results)
+}
+func deleteProduct(ctx context.Context, DD *gorm.DB, res http.ResponseWriter, req *http.Request) {
+	if req.Method != "Delete" {
+		http.ServeFile(res, req, "seller_profile.html")
 
 	}
 	product := []models.Product{}
-	rowstext := DB.QueryRow("SELECT * FROM products WHERE prod_name =?", *p.Product_Name)
-	for rowstext.Next() {
-		var id uint
-		var product_name *string
-		var price *uint64
-		var rating *uint8
-		var image *string
-		err2 := rowstext.Scan(&id, &product_name, &price, &image)
-		if err2 != nil {
-			return nil, err2
-		}
-		product := models.Product{id, product_name, price, rating, image}
-		products := append(products, product)
-	}
-	return products, nil
+	txt1 := req.FormValue("product_name")
+	prod := DD.Where("product_name <>?", txt1).First(product)
+	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelfunc()
+	results := DD.Delete(&prod)
 
+	err := results.Error
+
+	if err != nil {
+		log.Printf("Error %s when deleting row into products table", err)
+	}
+	log.Printf("%d product deleted", results)
+	json.NewEncoder(res).Encode(results)
 }
 
-func login(res http.ResponseWriter, req *http.Request) {
-	if req.Method != "POST" {
-		http.ServeFile(res, req, "login.html")
-		return
-	}
-	email := req.FormValue("email")
-	password := req.FormValue("password")
+func deleteAccount(ctx context.Context, DD *gorm.DB, res http.ResponseWriter, req *http.Request) (*http.Response, error) {
+	if req.Method != "Delete" {
+		http.ServeFile(res, req, "seller_profile.html")
 
-	var dbemail, psw string
-	err := DB.QueryRow("SELECT email,password FROM users WHERE email =?", email).Scan(&dbemail, &psw)
+	}
+	acc := []models.Seller{}
+	txt10 := req.FormValue("product_name")
+	resul := DD.Where("product_name <>?", txt10).First(acc)
+	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelfunc()
+	results := DD.Delete(&resul)
+
+	err := results.Error
 
 	if err != nil {
-		http.Redirect(res, req, "/login", 301)
-		return
+		log.Printf("Error %s when deleting this seller table", err)
+		return &http.Response{Status: "Account Not Deleted"}, err
 	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(psw), []byte(password))
-
-	if err != nil {
-		http.Redirect(res, req, "/login", 301)
-		return
-	}
-
-	res.Write([]byte("Hello" + email))
-
+	log.Printf("%d Account  deleted", results)
+	return &http.Response{Status: "Deleted"}, nil
 }
