@@ -4,30 +4,50 @@ import (
 	"database/sql"
 	"log"
 
+	"net/http"
+
+	"github.com/jinzhu/gorm"
+
 	//"github.com/gin-gonic/gin"
 	"github.com/zainabmohammed9949/golang-sql-store/models"
 )
 
-func AddAddress(Db *sql.DB, a models.Address, u models.User) error {
+func AddUserAddress(DD *gorm.DB, res http.ResponseWriter, req *http.Request) error {
+	home := req.FormValue("home_name")
+	city := req.FormValue("city_name")
 
-	rows, err := Db.Query("INSERT  INTO address(home,city) VALUES (?,?) WHERE email =?", a.House, a.City, u.Email)
-	if err != nil {
-		log.Println("Invalid")
-		return err
-	}
-	log.Printf("%d address created", rows)
+	address := models.UserAddress{House: &home, City: &city}
+	results := DD.Create(&address)
+	err := results.Error
+	return err
+
+	log.Printf("%d address created", results)
+	return nil
+
+}
+func AddSellerAddress(DD *gorm.DB, res http.ResponseWriter, req *http.Request) error {
+	store := req.FormValue("store_name")
+	city := req.FormValue("city_name")
+
+	address := models.SellerAddress{Store: &store, City: &city}
+	results := DD.Create(&address)
+	err := results.Error
+	return err
+
+	log.Printf("%d address created", results)
 	return nil
 
 }
 
-func EditaAddress(Db sql.DB, a models.Address, u models.User) (string, error) {
-	rows, err := Db.Query("UPDATE  address SET home=?,city=? WHERE email=? ", a.House, a.City, u.Email)
-	if err != nil {
-		return "invalid", err
-	}
-	log.Printf("%d address edited", rows)
+func EditaAddress(Db sql.DB, DD *gorm.DB, res http.ResponseWriter, req *http.Request) {
+	home := req.FormValue("home_name")
+	city := req.FormValue("city_name")
 
-	return "editing successflly", nil
+	address := models.UserAddress{House: &home, City: &city}
+	results := DD.Update(&address)
+
+	log.Printf("%d address edited", results)
+
 }
 func DeleteAddress(Db sql.DB, u models.User) (string, error) {
 	rows, err := Db.Query("DELETE * FROM  address  WHERE email=? ", u.Email)
@@ -38,3 +58,4 @@ func DeleteAddress(Db sql.DB, u models.User) (string, error) {
 
 	return "deleted successflly", nil
 }
+
