@@ -1,69 +1,74 @@
 package models
 
 import (
-	"log"
+	"encoding/json"
+	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/jinzhu/gorm"
-	"github.com/zainabmohammed9949/golang-mysql-store/database"
+	"github.com/zainabmohammed9949/golang-sql-store/database"
 )
 
 var db *gorm.DB
 
-type buyer struct {
+type Seller struct {
 	gorm.Model
-	ID               uint      `gorm:"unique;autoincrement;json :"buyer_id`
-	Store_Name       *string   `json:"store_name" `
-	Last_Name        *string   `json:"last_name"`
-	Password         *string   `json:"password" `
-	Email            *string   `gorm:"unique;json:"email"`
-	Phone            *string   `json:"phone"`
-	Token            *string   `json:"token"`
-	Refresh_Token    *string   `json:"refresh_token"`
-	Created_At       time.Time `json:"created_at"`
-	Updated_At       time.Time `json:"updated_at"`
-	iserted_products []Product `json:"byerprod"`
+	ID              uint            `gorm:"unique;autoincrement;json :"buyer_id""`
+	Store_Name      *string         `json:"store_name" `
+	Seller_Name     *string         `json:"seller_name"`
+	Password        *string         `json:"password" `
+	Email           *string         `gorm:"unique;json:"email""`
+	Phone           *string         `gorm:"unique;json:"phone""`
+	Token           *string         `json:"token"`
+	Refresh_Token   *string         `json:"refresh_token"`
+	Joined_At       time.Time       `json:"joiend_at"`
+	Deleted_At      time.Time       `json:"deleted_at"`
+	Seller_products []Product       `gorm :"many2many:sellerproducts;json:"sellerprod"`
+	Sub_Fees        uint            `json :"fees"`
+	Address_Details []SellerAddress `gorm :"many2many:seller_address;" `
 }
 
 type User struct {
 	gorm.Model
-	First_Name    *string   `json:"first_name" `
-	Last_Name     *string   `json:"last_name"`
-	Password      *string   `json:"password" `
-	Email         *string   `gorm:"unique;json:"email"`
-	Phone         *string   `json:"phone"`
-	Token         *string   `json:"token"`
-	Refresh_Token *string   `json:"refresh_token"`
-	Created_At    time.Time `json:"created_at"`
-	Updated_At    time.Time `json:"updated_at"`
-	//User_ID         string        `json:"user_id"`
-	UserCart        []ProductUser `json:"usercart" bson:"usercart"`
-	Address_Details []Address     `json:"address" bson:"address"`
-	Order_Status    []Order       `json:"orders" bson:"orders"`
-	Notes           *string       `json:user_notes`
+	ID              uint          `gorm:"unique;autoincrement;default:uuid_generate_v3; json :"user_id`
+	User_Name       *string       `json:"user_name" `
+	Password        *string       `json:"password" `
+	Email           *string       `gorm:"unique;json:"email""`
+	Phone           *string       `gorm:"unique;json:"phone""`
+	UserCart        []ProductUser `gorm :"many2many:userproducts;"`
+	Address_Details []UserAddress `gorm :"many2many:useraddress;" `
+	Order_Status    []Order       `gorm :"many2many:orders" ;foreignKey:Refer;joinForeignKey:UserReferID;References:UserRefer;joinReferences:OrderRefer"`
+	Refer           uint          `gorm:"index:unique"`
 }
 
 type Product struct {
-	ID           uint    `gorm:"json:prod_id; unique; autoinecrement"`
-	Product_Name *string `json:"product_name"`
-	Price        *uint64 `json:"price"`
-	Rating       *uint8  `json:"rating"`
-	Image        *string `json:"image"`
+	gorm.Model
+	ID           uint `gorm:"json:prod_id;primary_key; unique; autoinecrement"`
+	Product_Name *string
+	Price        *string
+	Image        *string
+	Sellers      []*Seller `gorm :"many2many:sellerproducts" ;`
 }
 type ProductUser struct {
 	gorm.Model
-	ID           uint    `gorm "json:prod_id;unique"`
-	Product_Name *string `json:"product_name" bson:"product_name"`
-	Price        uint64  `json:"price" bson:"price"`
-	Rating       *uint   `json:"rating" bson:"rating"`
+	ID           uint `gorm "json:prod_id;unique"`
+	Product_Name *string
+	Price        uint64 `json:"price" bson:"price"`
+	Rating       *uint
 	Image        *string `json:"image" bson:"image"`
+	Users        []*User `gorm :"many2many:userproducts" ;`
 }
 
-type Address struct {
+type UserAddress struct {
 	House *string `json:"house_name" bson:"house_name"`
-	//Street  *string `json:"street_name" bson:"street_name"`
-	City *string `json:"city_name" bson:"city_name"`
-	//Pincode *string `json:"pin_code" bson:"pin_code"`
+	City  *string `json:"city_name" bson:"city_name"`
+	Users []*User `gorm :"many2many:useraddress" ;`
+}
+type SellerAddress struct {
+	Store   *string   `json:"store_name" bson:"store_name"`
+	City    *string   `json:"city_name" bson:"city_name"`
+	Sellers []*Seller `gorm :"many2many:selleraddress" ;`
 }
 
 type Order struct {
@@ -73,7 +78,8 @@ type Order struct {
 	Ordered_At     time.Time     `json:"order_at" bson:"order_at"`
 	Price          int           `json:"total_price" bson:"total_price"`
 	Discount       *int          `json:"discount" bson:"discount"`
-	Payment_Method Payment       `json:"payment_method" bson:"payment_method"`
+	Payment_Method Payment       `json:"payment_method" `
+	Users          []*User       `gorm :"many2many:orders" ;`
 }
 
 type Payment struct {
@@ -84,29 +90,23 @@ type Payment struct {
 func init() {
 	database.Connect()
 	db = database.GetDB()
+	db.AutoMigrate(&Seller{})
 	db.AutoMigrate(&User{})
 	db.AutoMigrate(&Product{})
-	db.AutoMigrate(&ProductUser{})
-	db.AutoMigrate(&Order{})
-	db.AutoMigrate(&Address{})
 
 }
-
-//func GetProductByName(name string) (*Product, *gorm.DB) {
-//var getProduct = []Product{}
-//db := db.Where("Product_Name", name).Find(&getProduct)
-//	return &getProduct, db
-//}
 func (u *User) CreateUser() *User {
 	db.NewRecord(u)
 	db.Create(&u)
 	return u
 }
 
-func GetAllUsers() []User {
+func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	var users []User
 	db.Find(&users)
-	return users
+	fmt.Println("{}", users)
+
+	json.NewEncoder(w).Encode(users)
 }
 func GetAllProds() []Product {
 	var prod []Product
@@ -127,15 +127,4 @@ func GetordersUsersById(Id int64) (*Order, *gorm.DB) {
 	var getord Order
 	db := db.Where("ID=?", Id).Find(&getord)
 	return &getord, db
-}
-func AddAddress(Db *gorm.DB, prod Product, b buyer) error {
-
-	rows, err := Db.Query("INSERT  INTO address(home,city) VALUES (?,?) WHERE email =?", a.House, a.City, u.Email)
-	if err != nil {
-		log.Println("Invalid")
-		return err
-	}
-	log.Printf("%d address created", rows)
-	return nil
-
 }
