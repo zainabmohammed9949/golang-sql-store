@@ -5,7 +5,7 @@ import (
 	"log"
 
 	//"github.com/gin-gonic/gin"
-	"github.com/zainabmohammed9949/golang-mysql-store/models"
+	"github.com/zainabmohammed9949/golang-sql-store/models"
 )
 
 func AddAddress(Db *sql.DB, a models.Address, u models.User) error {
