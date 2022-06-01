@@ -1,22 +1,18 @@
 package controllers
 
 import (
-	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/jinzhu/gorm"
-	"github.com/zainabmohammed9949/eco-go/models"
 	"github.com/zainabmohammed9949/golang-sql-store/models"
 
 	"context"
 
 	"golang.org/x/crypto/bcrypt"
 )
-
-var DB *sql.DB
 
 func HashPassword(password string) string {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
@@ -104,7 +100,6 @@ func deleteProduct(ctx context.Context, DD *gorm.DB, res http.ResponseWriter, re
 
 	if err != nil {
 		log.Printf("Error %s when deleting row into products table", err)
-		return &http.Response{Status: "Not Deleted"}, err
 	}
 	log.Printf("%d product deleted", results)
 	json.NewEncoder(res).Encode(results)

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin/internal/json"
 	"github.com/jinzhu/gorm"
 	"github.com/zainabmohammed9949/golang-sql-store/database"
 )
@@ -25,9 +24,9 @@ type Seller struct {
 	Refresh_Token   *string         `json:"refresh_token"`
 	Joined_At       time.Time       `json:"joiend_at"`
 	Deleted_At      time.Time       `json:"deleted_at"`
-	Seller_products []Product       `json:"sellerprod"`
+	Seller_products []Product       `gorm :"many2many:sellerproducts;json:"sellerprod"`
 	Sub_Fees        uint            `json :"fees"`
-	Address_Details []SellerAddress `json:"address" bson:"address"`
+	Address_Details []SellerAddress `gorm :"many2many:seller_address;" `
 }
 
 type User struct {
@@ -37,10 +36,10 @@ type User struct {
 	Password        *string       `json:"password" `
 	Email           *string       `gorm:"unique;json:"email""`
 	Phone           *string       `gorm:"unique;json:"phone""`
-	UserCart        []ProductUser `json:"usercart" bson:"usercart"`
-	Address_Details []UserAddress `json:"seller_address" bson:"address"`
-	Order_Status    []Order       `json:"orders" bson:"orders"`
-	Notes           *string       `json:user_notes`
+	UserCart        []ProductUser `gorm :"many2many:userproducts;"`
+	Address_Details []UserAddress `gorm :"many2many:useraddress;" `
+	Order_Status    []Order       `gorm :"many2many:orders" ;foreignKey:Refer;joinForeignKey:UserReferID;References:UserRefer;joinReferences:OrderRefer"`
+	Refer           uint          `gorm:"index:unique"`
 }
 
 type Product struct {
@@ -49,6 +48,7 @@ type Product struct {
 	Product_Name *string
 	Price        *string
 	Image        *string
+	Sellers      []*Seller `gorm :"many2many:sellerproducts" ;`
 }
 type ProductUser struct {
 	gorm.Model
@@ -57,15 +57,18 @@ type ProductUser struct {
 	Price        uint64 `json:"price" bson:"price"`
 	Rating       *uint
 	Image        *string `json:"image" bson:"image"`
+	Users        []*User `gorm :"many2many:userproducts" ;`
 }
 
 type UserAddress struct {
 	House *string `json:"house_name" bson:"house_name"`
 	City  *string `json:"city_name" bson:"city_name"`
+	Users []*User `gorm :"many2many:useraddress" ;`
 }
 type SellerAddress struct {
-	store *string `json:"store_name" bson:"store_name"`
-	City  *string `json:"city_name" bson:"city_name"`
+	Store   *string   `json:"store_name" bson:"store_name"`
+	City    *string   `json:"city_name" bson:"city_name"`
+	Sellers []*Seller `gorm :"many2many:selleraddress" ;`
 }
 
 type Order struct {
@@ -75,7 +78,8 @@ type Order struct {
 	Ordered_At     time.Time     `json:"order_at" bson:"order_at"`
 	Price          int           `json:"total_price" bson:"total_price"`
 	Discount       *int          `json:"discount" bson:"discount"`
-	Payment_Method Payment       `json:"payment_method" bson:"payment_method"`
+	Payment_Method Payment       `json:"payment_method" `
+	Users          []*User       `gorm :"many2many:orders" ;`
 }
 
 type Payment struct {
@@ -88,11 +92,7 @@ func init() {
 	db = database.GetDB()
 	db.AutoMigrate(&Seller{})
 	db.AutoMigrate(&User{})
-	db.AutoMigrate(&ProductUser{})
-	db.AutoMigrate(&Order{})
-	db.AutoMigrate(&UserAddress{})
 	db.AutoMigrate(&Product{})
-	db.AutoMigrate(&SellerAddress{})
 
 }
 func (u *User) CreateUser() *User {

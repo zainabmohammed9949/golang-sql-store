@@ -9,7 +9,6 @@ import (
 	"github.com/jinzhu/gorm"
 
 	//"github.com/gin-gonic/gin"
-	"github.com/zainabmohammed9949/eco-go/models"
 	"github.com/zainabmohammed9949/golang-sql-store/models"
 )
 
