@@ -25,7 +25,7 @@ func InstantBuyer() error {
 	var product_details models.ProductUser
 	var orders_detail models.Order
 
-	orders_detail.Order_ID = orders_detail.ID
+	orders_detail.ID = orders_detail.ID
 	orders_detail.Ordered_At = time.Now()
 	orders_detail.Order_Cart = make([]models.ProductUser, 0)
 	orders_detail.Payment_Method.COD = true

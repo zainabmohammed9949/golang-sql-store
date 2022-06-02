@@ -1,30 +1,24 @@
 package models
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/jinzhu/gorm"
-	"github.com/zainabmohammed9949/golang-sql-store/database"
 )
-
-var db *gorm.DB
 
 type Seller struct {
 	gorm.Model
-	ID              uint            `gorm:"unique;autoincrement;json :"buyer_id""`
+	ID              uint            `gorm:"unique;"  json :"buyer_id"`
 	Store_Name      *string         `json:"store_name" `
 	Seller_Name     *string         `json:"seller_name"`
 	Password        *string         `json:"password" `
-	Email           *string         `gorm:"unique;json:"email""`
-	Phone           *string         `gorm:"unique;json:"phone""`
+	Email           *string         `gorm:"unique;" json:"email"`
+	Phone           *string         `gorm:"unique;" `
 	Token           *string         `json:"token"`
 	Refresh_Token   *string         `json:"refresh_token"`
 	Joined_At       time.Time       `json:"joiend_at"`
 	Deleted_At      time.Time       `json:"deleted_at"`
-	Seller_products []Product       `gorm :"many2many:sellerproducts;json:"sellerprod"`
+	Seller_products []Product       `gorm :"many2many:sellerproducts;" json:"sellerprod"`
 	Sub_Fees        uint            `json :"fees"`
 	Address_Details []SellerAddress `gorm :"many2many:seller_address;" `
 }
@@ -44,10 +38,10 @@ type User struct {
 
 type Product struct {
 	gorm.Model
-	ID           uint `gorm:"json:prod_id;primary_key; unique; autoinecrement"`
-	Product_Name *string
-	Price        *string
-	Image        *string
+	ID           uint      `gorm:"json:prod_id;primary_key; unique; autoinecrement"`
+	Product_Name *string   `json:"prod_name"`
+	Price        *string   `json:"prod_price"`
+	Image        *string   `json:"prod_image"`
 	Sellers      []*Seller `gorm :"many2many:sellerproducts" ;`
 }
 type ProductUser struct {
@@ -85,46 +79,4 @@ type Order struct {
 type Payment struct {
 	Digital bool
 	COD     bool
-}
-
-func init() {
-	database.Connect()
-	db = database.GetDB()
-	db.AutoMigrate(&Seller{})
-	db.AutoMigrate(&User{})
-	db.AutoMigrate(&Product{})
-
-}
-func (u *User) CreateUser() *User {
-	db.NewRecord(u)
-	db.Create(&u)
-	return u
-}
-
-func GetAllUsers(w http.ResponseWriter, r *http.Request) {
-	var users []User
-	db.Find(&users)
-	fmt.Println("{}", users)
-
-	json.NewEncoder(w).Encode(users)
-}
-func GetAllProds() []Product {
-	var prod []Product
-	db.Find(&prod)
-	return prod
-}
-func GetProductUser() []ProductUser {
-	var userprod []ProductUser
-	db.Find(&userprod)
-	return userprod
-}
-func GetUserOrders() []Order {
-	var userord []Order
-	db.Find(&userord)
-	return userord
-}
-func GetordersUsersById(Id int64) (*Order, *gorm.DB) {
-	var getord Order
-	db := db.Where("ID=?", Id).Find(&getord)
-	return &getord, db
 }

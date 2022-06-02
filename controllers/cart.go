@@ -22,15 +22,16 @@ func AddToCart(DD *gorm.DB, res http.ResponseWriter, req *http.Request) {
 	sellerproduct := []models.Product{}
 	txt10 := req.FormValue("product_name")
 	resuls := DD.Where("product_name <>?", txt10).First(sellerproduct)
-	if &resuls.Value == nil {
-		log.Println("product  is empty")
+
+	ckeck := []models.ProductUser{}
+	if ckeck == nil {
+		DD.AutoMigrate(&models.ProductUser{})
+		DD.NewRecord(&resuls)
 
 	}
-	userprod := models.ProductUser{}
+	DD.NewRecord(&resuls)
 
-	DD.Table(&userprod).Create(&resuls)
-
-	log.Printf("%d added to cart ", "{}", resuls)
+	log.Print(" added to cart ")
 	json.NewEncoder(res).Encode(resuls)
 	var _, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -44,7 +45,7 @@ func RemoveItem(DD *gorm.DB, res http.ResponseWriter, req *http.Request) {
 	}
 	txt1 := req.FormValue("product_name")
 
-	userproduct := []models.UserProduct{}
+	userproduct := []models.ProductUser{}
 	DD.Where("product_name=?", txt1).Delete(&userproduct)
 	var _, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
