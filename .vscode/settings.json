@@ -25,6 +25,19 @@
             "database": "mysqldb",
             "username": "zainab",
             "password": "0000"
+        },
+        {
+            "mysqlOptions": {
+                "authProtocol": "default"
+            },
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 8000,
+            "driver": "MySQL",
+            "name": "zainab",
+            "database": "shopshop",
+            "username": "zainab",
+            "password": "0000"
         }
     ]
 }

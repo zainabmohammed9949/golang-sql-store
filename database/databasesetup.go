@@ -1,31 +1,30 @@
 package database
 
 import (
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"fmt"
+
 	"github.com/zainabmohammed9949/golang-sql-store/models"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
-var (
-	db *gorm.DB
-)
+var DB *gorm.DB
 
 func Connect() {
-	d, err := gorm.Open("mysql", "zainab:0000@tcp(localhost:3306)/shopdb")
+	db, err := gorm.Open(mysql.Open("zainab:0000@/shopdb"), &gorm.Config{})
 	if err != nil {
-		panic(err)
+		panic("لم نستطع الاتصال بقاعده البيانات ")
 	}
-	db = d
+	fmt.Println("database connected")
+
+	//db.AutoMigrate(&models.Seller{})
+	db.AutoMigrate(&models.User{}, &models.UserAddress{}, &models.Product{}, &models.Seller{}, &models.Order{})
+
+	DB = db
+
 }
 
 func GetDB() *gorm.DB {
+	var db *gorm.DB
 	return db
-}
-func Init() {
-	Connect()
-	db = GetDB()
-	db.AutoMigrate(&models.Seller{})
-	db.AutoMigrate(&models.User{})
-	db.AutoMigrate(&models.Product{})
-
 }
