@@ -6,7 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
-	"github.com/zainabmoh9949/golang-mysql-store/routes"
+	"github.com/zainabmohammed9949/golang-mysql-store/routes"
 	//"github.com/zainabmoh9949/golang-mysql-store/tokens"
 )
 
